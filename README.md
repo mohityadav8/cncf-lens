@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" width="300" alt="cncf-lens logo"/>
+  <img src="assets/logo.png" width="300" alt="cncf-lens logo"/>
 </p>
 
 <h1 align="center">cncf-lens</h1>
