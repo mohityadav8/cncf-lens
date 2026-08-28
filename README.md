@@ -1,6 +1,21 @@
-# cncf-lens
+<p align="center">
+  <img src="assets/logo.svg" width="300" alt="cncf-lens logo"/>
+</p>
 
-A single CLI that correlates Kubernetes, Prometheus, Loki and Jaeger onto one timeline.
+<h1 align="center">cncf-lens</h1>
+
+<p align="center">
+  A single CLI that correlates Kubernetes, Prometheus, Loki and Jaeger onto one timeline.
+</p>
+
+<p align="center">
+  <a href="https://github.com/mohityadav8/cncf-lens/actions"><img src="https://github.com/mohityadav8/cncf-lens/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"/></a>
+  <img src="https://img.shields.io/badge/go-1.22+-00ADD8.svg" alt="Go version"/>
+  <img src="https://img.shields.io/badge/dependencies-zero-brightgreen.svg" alt="Zero dependencies"/>
+</p>
+
+---
 
 ## The problem
 
@@ -30,13 +45,15 @@ anomaly: [!!] Request latency p99 = 3.240
    + was itself logged at error severity
 ```
 
+---
+
 ## Install
 
 Requires Go 1.22 or later. There are no other dependencies.
 
 ```sh
 git clone https://github.com/mohityadav8/cncf-lens
-cd lens
+cd cncf-lens
 make install          # builds and installs to $GOPATH/bin
 ```
 
@@ -45,6 +62,8 @@ Or build without installing:
 ```sh
 make build            # produces ./bin/lens
 ```
+
+---
 
 ## Quickstart
 
@@ -62,6 +81,8 @@ kubectl -n monitoring port-forward svc/loki 3100:3100 &
 kubectl -n monitoring port-forward svc/jaeger-query 16686:16686 &
 ```
 
+---
+
 ## Commands
 
 | Command | What it does |
@@ -76,6 +97,8 @@ kubectl -n monitoring port-forward svc/jaeger-query 16686:16686 &
 
 Run `lens help <command>` for the full flag list.
 
+---
+
 ## How correlation works
 
 Every backend adapter normalises its data into a common `Signal` type carrying a timestamp, a severity, and canonical Kubernetes identity labels. Correlation then happens in three stages:
@@ -88,11 +111,15 @@ Every backend adapter normalises its data into a common `Signal` type carrying a
 
 The engine deliberately uses no machine learning. Rule-based scoring is good enough for the large majority of real incidents and, unlike a model score, an engineer can disagree with it.
 
+---
+
 ## Backends
 
 Compiled in: Kubernetes, Prometheus (also Thanos, Cortex, Mimir, VictoriaMetrics), Loki, Jaeger (also Tempo).
 
 Anything else integrates through the plugin protocol. A plugin is any executable named `lens-plugin-*` on your `$PATH` that answers three subcommands over stdin/stdout JSON. It can be written in any language. See [docs/PLUGINS.md](docs/PLUGINS.md) and the working reference implementation in [examples/plugin-example](examples/plugin-example).
+
+---
 
 ## Zero dependencies
 
@@ -104,6 +131,8 @@ Anything else integrates through the plugin protocol. A plugin is any executable
 
 The cost is that lens implements its own CLI framework, a small YAML subset parser, and an ANSI renderer. Those are in `internal/cli`, `internal/config/yaml.go` and `internal/render`, and they are each a few hundred lines.
 
+---
+
 ## Output formats
 
 ```sh
@@ -114,6 +143,8 @@ lens audit --output=sarif        # GitHub Advanced Security, GitLab, most dashbo
 
 `lens audit --fail-on=error` exits non-zero, which makes it usable as a CI gate.
 
+---
+
 ## Development
 
 ```sh
@@ -122,9 +153,13 @@ make vet lint fmt     # static checks
 make build
 ```
 
+---
+
 ## Status
 
 This is a working v0.1. The correlation engine, all four backend adapters, the plugin protocol and every command are implemented and tested. What it does not yet have: gRPC transports (Jaeger and OTel are reached over HTTP), client-certificate kubeconfig auth (use `kubectl proxy` or a service account token), and a full-screen TUI for `lens watch` — it currently streams line by line.
+
+---
 
 ## Licence
 
