@@ -1,0 +1,69 @@
+# Example cncf-lens configuration showing both a local development cluster and
+# a production context.
+#
+# Safe to commit: every credential is read from a named environment variable
+# rather than stored here.
+
+defaults:
+  context: local
+  output: terminal
+  cache_ttl: 5m
+  correlation_window: 500ms
+  lookback: 15m
+  adapter_timeout: 20s
+  max_signals: 2000
+  color: true
+
+contexts:
+  # Local development, with backends reached through kubectl port-forward:
+  #   kubectl -n monitoring port-forward svc/prometheus 9090:9090 &
+  #   kubectl -n monitoring port-forward svc/loki 3100:3100 &
+  #   kubectl -n monitoring port-forward svc/jaeger-query 16686:16686 &
+  local:
+    kubeconfig: ""
+    kubecontext: ""
+    backends:
+      kubernetes:
+        enabled: true
+      prometheus:
+        enabled: true
+        url: http://localhost:9090
+      loki:
+        enabled: true
+        url: http://localhost:3100
+      jaeger:
+        enabled: true
+        url: http://localhost:16686
+
+  production:
+    kubecontext: prod-us-east-1
+    backends:
+      kubernetes:
+        enabled: true
+
+      # Thanos serves the same API as Prometheus, so the prometheus adapter
+      # handles it. The key prefix is what selects the adapter.
+      prometheus:
+        enabled: true
+        url: https://thanos.prod.internal
+        token_env: THANOS_TOKEN
+        timeout: 30s
+
+      loki:
+        enabled: true
+        url: https://loki.prod.internal
+        token_env: LOKI_TOKEN
+
+      # Tempo exposes a Jaeger-compatible endpoint.
+      tempo:
+        enabled: true
+        url: https://tempo.prod.internal
+        token_env: TEMPO_TOKEN
+
+      # An external plugin. Unrecognised keys below are passed through to
+      # lens-plugin-example verbatim in its `settings` object.
+      example:
+        url: https://policy-api.prod.internal
+        token_env: POLICY_TOKEN
+        region: eu-west-1
+        tenant: acme
