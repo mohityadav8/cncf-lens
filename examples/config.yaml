@@ -35,6 +35,12 @@ contexts:
         enabled: true
         url: http://localhost:16686
 
+      # Falco runtime security. Point at falcosidekick, or read the JSON-lines
+      # file written by Falco's file_output with `file:` instead of `url:`.
+      falco:
+        enabled: true
+        url: http://localhost:2801
+
   production:
     kubecontext: prod-us-east-1
     backends:
@@ -67,3 +73,4 @@ contexts:
         token_env: POLICY_TOKEN
         region: eu-west-1
         tenant: acme
+        

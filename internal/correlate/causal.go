@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // Hypothesis is one candidate explanation for an anomaly, with the evidence

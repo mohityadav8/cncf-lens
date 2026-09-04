@@ -3,8 +3,8 @@ package loki
 import (
 	"testing"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // Extracting a trace ID from a log line is the highest-value correlation the

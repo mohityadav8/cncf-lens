@@ -10,17 +10,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/adapter/jaeger"
-	"github.com/cncf-lens/lens/internal/adapter/kubernetes"
-	"github.com/cncf-lens/lens/internal/adapter/loki"
-	"github.com/cncf-lens/lens/internal/adapter/plugin"
-	"github.com/cncf-lens/lens/internal/adapter/prometheus"
-	"github.com/cncf-lens/lens/internal/cache"
-	"github.com/cncf-lens/lens/internal/cli"
-	"github.com/cncf-lens/lens/internal/config"
-	"github.com/cncf-lens/lens/internal/render"
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/adapter/falco"
+	"github.com/mohityadav8/cncf-lens/internal/adapter/jaeger"
+	"github.com/mohityadav8/cncf-lens/internal/adapter/kubernetes"
+	"github.com/mohityadav8/cncf-lens/internal/adapter/loki"
+	"github.com/mohityadav8/cncf-lens/internal/adapter/plugin"
+	"github.com/mohityadav8/cncf-lens/internal/adapter/prometheus"
+	"github.com/mohityadav8/cncf-lens/internal/cache"
+	"github.com/mohityadav8/cncf-lens/internal/cli"
+	"github.com/mohityadav8/cncf-lens/internal/config"
+	"github.com/mohityadav8/cncf-lens/internal/render"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // Globals holds the flags every command accepts. A single struct keeps flag
@@ -49,7 +50,7 @@ type Globals struct {
 var G Globals
 
 // Version is stamped at build time.
-var Version = "dev"
+var Version = "v0.0.2"
 
 // RegisterGlobals attaches the shared flags to a flag set.
 func RegisterGlobals(fs *flag.FlagSet) {
@@ -144,6 +145,15 @@ func (r *Runtime) buildRegistry(ctx context.Context) error {
 			a = loki.New(name, bc.URL, bc.Token, bc.Insecure, bc.Timeout)
 		case strings.HasPrefix(name, "jaeger"), strings.HasPrefix(name, "tempo"):
 			a = jaeger.New(name, bc.URL, bc.Token, bc.Insecure, bc.Timeout)
+		case strings.HasPrefix(name, "falco"):
+			// Falco is reachable either through falcosidekick over HTTP or by
+			// reading the JSON-lines file its file_output writes. A `file` key
+			// in the backend config selects the latter.
+			if path := bc.Extra["file"]; path != "" {
+				a = falco.NewFromFile(name, path)
+			} else {
+				a = falco.New(name, bc.URL, bc.Token, bc.Insecure, bc.Timeout)
+			}
 		default:
 			// Unknown backend names are not an error: they may be handled by an
 			// external plugin discovered below.

@@ -332,8 +332,11 @@ func (c *Config) Validate() error {
 			if !b.Enabled {
 				continue
 			}
-			if b.URL == "" && b.Endpoint == "" && bname != "kubernetes" {
-				return fmt.Errorf("contexts.%s.backends.%s: needs either `url` or `endpoint`", name, bname)
+			// Kubernetes resolves its endpoint from kubeconfig, and a
+			// file-backed backend (Falco's file_output) has no endpoint at all.
+			if b.URL == "" && b.Endpoint == "" && b.Extra["file"] == "" && bname != "kubernetes" {
+				return fmt.Errorf(
+					"contexts.%s.backends.%s: needs `url`, `endpoint` or `file`", name, bname)
 			}
 		}
 	}

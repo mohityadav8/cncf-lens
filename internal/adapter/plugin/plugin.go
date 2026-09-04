@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // Prefix is the filename prefix lens looks for when discovering plugins.

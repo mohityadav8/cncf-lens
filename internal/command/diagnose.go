@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/cli"
-	"github.com/cncf-lens/lens/internal/correlate"
-	"github.com/cncf-lens/lens/internal/render"
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/cli"
+	"github.com/mohityadav8/cncf-lens/internal/correlate"
+	"github.com/mohityadav8/cncf-lens/internal/render"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 var diagnoseFlags struct {

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/correlate"
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/correlate"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // ANSI escape codes. Kept as constants rather than a colour library because

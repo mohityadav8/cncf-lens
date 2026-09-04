@@ -5,7 +5,7 @@ package correlate
 import (
 	"time"
 
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // DefaultTolerance is the window within which signals from different backends

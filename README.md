@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="assets/logo.svg" width="300" alt="cncf-lens logo"/>
+  <img src="assets/logo.png" width="300" alt="cncf-lens logo"/>
 </p>
 
 <h1 align="center">cncf-lens</h1>
 
 <p align="center">
-  A single CLI that correlates Kubernetes, Prometheus, Loki and Jaeger onto one timeline.
+  A single CLI that correlates Kubernetes, Prometheus, Loki, Jaeger and Falco onto one timeline.
 </p>
 
 <p align="center">
@@ -94,6 +94,7 @@ kubectl -n monitoring port-forward svc/jaeger-query 16686:16686 &
 | `lens cost` | Estimates spend from peak observed CPU and memory per workload. |
 | `lens doctor` | Reports which backends are reachable and why the others are not. |
 | `lens init` | Generates a starter config. |
+| `lens completion` | Prints a shell completion script for bash, zsh or fish. |
 
 Run `lens help <command>` for the full flag list.
 
@@ -115,7 +116,23 @@ The engine deliberately uses no machine learning. Rule-based scoring is good eno
 
 ## Backends
 
-Compiled in: Kubernetes, Prometheus (also Thanos, Cortex, Mimir, VictoriaMetrics), Loki, Jaeger (also Tempo).
+Compiled in: Kubernetes, Prometheus (also Thanos, Cortex, Mimir, VictoriaMetrics), Loki, Jaeger (also Tempo), Falco.
+
+Falco is worth a note because it works differently from the others. It has no query API of its own — it is a streaming detector that pushes alerts outward — so lens reads them from wherever your cluster collects them:
+
+```yaml
+# via falcosidekick
+falco:
+  enabled: true
+  url: http://localhost:2801
+
+# or straight from Falco's file_output
+falco:
+  enabled: true
+  file: /var/log/falco/events.json
+```
+
+Falco's `output_fields` are mapped onto the same canonical labels every other adapter uses, so a container-escape alert correlates against the metric spike and the deployment for that same pod. Alerts below warning priority are dropped by default, since Falco is deliberately chatty at Debug and Informational.
 
 Anything else integrates through the plugin protocol. A plugin is any executable named `lens-plugin-*` on your `$PATH` that answers three subcommands over stdin/stdout JSON. It can be written in any language. See [docs/PLUGINS.md](docs/PLUGINS.md) and the working reference implementation in [examples/plugin-example](examples/plugin-example).
 
@@ -145,6 +162,23 @@ lens audit --output=sarif        # GitHub Advanced Security, GitLab, most dashbo
 
 ---
 
+## Shell completions
+
+```sh
+# bash
+lens completion bash > /etc/bash_completion.d/lens
+
+# zsh
+lens completion zsh > "${fpath[1]}/_lens"
+
+# fish
+lens completion fish > ~/.config/fish/completions/lens.fish
+```
+
+Bash completion offers live namespaces when `kubectl` is on your `$PATH`.
+
+---
+
 ## Development
 
 ```sh
@@ -157,7 +191,23 @@ make build
 
 ## Status
 
-This is a working v0.1. The correlation engine, all four backend adapters, the plugin protocol and every command are implemented and tested. What it does not yet have: gRPC transports (Jaeger and OTel are reached over HTTP), client-certificate kubeconfig auth (use `kubectl proxy` or a service account token), and a full-screen TUI for `lens watch` — it currently streams line by line.
+This is v0.0.2. The correlation engine, five backend adapters, the plugin protocol and every command are implemented and tested.
+
+Known gaps, tracked in [ROADMAP.md](ROADMAP.md):
+
+- gRPC transports — Jaeger and OTLP are reached over HTTP only.
+- Client-certificate and exec-plugin kubeconfig auth — use `kubectl proxy` or a service account token for now.
+- `lens watch` streams line by line rather than rendering a full-screen TUI.
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed between releases.
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the setup, the no-dependencies rule, and what to keep in mind when adding a backend or touching the correlation engine.
+
+If you hit a problem, opening an issue describing what broke is more useful than proposing a feature. The Falco adapter exists because someone pointed out that the README mentioned Falco while the tool did not actually query it.
 
 ---
 

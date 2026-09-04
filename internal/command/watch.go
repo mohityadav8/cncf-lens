@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/cli"
-	"github.com/cncf-lens/lens/internal/correlate"
-	sig "github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/cli"
+	"github.com/mohityadav8/cncf-lens/internal/correlate"
+	sig "github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 var watchFlags struct {

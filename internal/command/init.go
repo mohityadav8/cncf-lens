@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cncf-lens/lens/internal/cli"
-	"github.com/cncf-lens/lens/internal/config"
+	"github.com/mohityadav8/cncf-lens/internal/cli"
+	"github.com/mohityadav8/cncf-lens/internal/config"
 )
 
 var initFlags struct {
@@ -111,6 +111,13 @@ contexts:
         enabled: true
         url: http://localhost:16686
         # token_env: JAEGER_TOKEN
+
+      # Falco runtime security. Point this at falcosidekick, or read Falco's
+      # file_output directly by setting a file path instead of a url.
+      falco:
+        enabled: false
+        url: http://localhost:2801
+        # file: /var/log/falco/events.json
 
   # A second context for production. Note token_env rather than inline tokens.
   #

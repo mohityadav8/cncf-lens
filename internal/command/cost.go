@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/cli"
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/cli"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 var costFlags struct {

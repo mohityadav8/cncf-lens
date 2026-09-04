@@ -53,7 +53,7 @@ func NewHTTPClient(baseURL, token string, insecure bool, timeout time.Duration) 
 }
 
 // Version is stamped at build time via -ldflags.
-var Version = "dev"
+var Version = "v0.0.2"
 
 // GetJSON performs a GET and decodes the JSON body into out.
 func (c *HTTPClient) GetJSON(ctx context.Context, path string, params url.Values, out any) error {

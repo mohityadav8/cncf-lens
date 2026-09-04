@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/config"
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/config"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // Adapter reads cluster state and events.

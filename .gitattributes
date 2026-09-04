@@ -1,0 +1,25 @@
+# Normalise line endings so Windows checkouts stop warning about CRLF and so
+# the repository content is identical regardless of contributor platform.
+* text=auto eol=lf
+
+*.go     text eol=lf
+*.md     text eol=lf
+*.yaml   text eol=lf
+*.yml    text eol=lf
+*.mod    text eol=lf
+*.sum    text eol=lf
+Makefile text eol=lf
+LICENSE  text eol=lf
+
+# Shell scripts must keep LF or they break on Linux.
+*.sh text eol=lf
+
+# Binary assets are never normalised.
+*.png binary
+*.jpg binary
+*.ico binary
+*.gz  binary
+*.zip binary
+
+# Collapse generated and vendored content in diffs and language stats.
+*.svg linguist-detectable=false

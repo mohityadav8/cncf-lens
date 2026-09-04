@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // Query describes what the caller wants. Adapters translate it into their own

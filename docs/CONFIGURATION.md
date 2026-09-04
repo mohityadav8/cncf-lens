@@ -74,7 +74,29 @@ backends:
     url: https://thanos.internal
 ```
 
-Recognised prefixes: `kubernetes`, `prometheus`, `thanos`, `mimir`, `cortex`, `loki`, `jaeger`, `tempo`. Any other key is assumed to belong to an external plugin, and its settings are passed through to that plugin verbatim.
+Recognised prefixes: `kubernetes`, `prometheus`, `thanos`, `mimir`, `cortex`, `loki`, `jaeger`, `tempo`, `falco`. Any other key is assumed to belong to an external plugin, and its settings are passed through to that plugin verbatim.
+
+## Falco
+
+Falco has no query API of its own — it is a streaming detector that pushes alerts outward. lens reads them from wherever your cluster collects them, so there are two ways to configure it.
+
+Through falcosidekick, the standard fan-out component:
+
+```yaml
+falco:
+  enabled: true
+  url: http://localhost:2801
+```
+
+Or straight from the JSON-lines file Falco's `file_output` writes:
+
+```yaml
+falco:
+  enabled: true
+  file: /var/log/falco/events.json
+```
+
+A backend configured with `file` needs no `url`. Alerts below warning priority are dropped by default, because Falco is deliberately chatty at Debug and Informational and an audit report drowning in noise gets ignored.
 
 ## Tunables worth understanding
 

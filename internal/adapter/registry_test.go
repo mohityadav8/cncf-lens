@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cncf-lens/lens/internal/signal"
+	"github.com/mohityadav8/cncf-lens/internal/signal"
 )
 
 // fakeAdapter is a configurable test double.

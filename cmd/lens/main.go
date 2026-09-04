@@ -12,15 +12,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/cncf-lens/lens/internal/adapter"
-	"github.com/cncf-lens/lens/internal/cli"
-	"github.com/cncf-lens/lens/internal/command"
+	"github.com/mohityadav8/cncf-lens/internal/adapter"
+	"github.com/mohityadav8/cncf-lens/internal/cli"
+	"github.com/mohityadav8/cncf-lens/internal/command"
 )
 
 // version is overridden at build time:
 //
 //	go build -ldflags "-X main.version=$(git describe --tags)"
-var version = "dev"
+var version = "v0.0.2"
 
 func main() {
 	// Propagate the build version into the packages that report it.
@@ -43,6 +43,7 @@ func main() {
 	app.Add(command.Cost())
 	app.Add(command.Init())
 	app.Add(command.Doctor())
+	app.Add(command.Completion())
 
 	os.Exit(app.Run(ctx, os.Args[1:]))
 }
