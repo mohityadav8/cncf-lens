@@ -13,24 +13,32 @@ import (
 )
 
 func TestWorkloadFromPod(t *testing.T) {
-	// Kubernetes names Deployment pods <workload>-<rs-hash>-<random5>. The
-	// random suffix is always 5 characters and the ReplicaSet hash 8-10, so
-	// the heuristic is tuned to those real lengths rather than to any short
-	// alphanumeric segment.
+	// Kubernetes Deployment Pods follow:
+	// <workload>-<replicaset-hash>-<random5>.
+	//
+	// The five-character Pod suffix may be entirely alphabetic, so workload
+	// detection must not require a digit in that suffix.
 	cases := map[string]string{
 		"payments-7d4b9c5f8-x2k9p":          "payments",
+		"payments-7d4b9c5f8-abcde":          "payments",
 		"checkout-api-5f9c8d7b6c-abc12":     "checkout-api",
+		"checkout-api-5f9c8d7b6c-fghjk":     "checkout-api",
 		"nginx-deployment-66b6c48dd5-j2mn4": "nginx-deployment",
 
-		// StatefulSet pods carry an ordinal rather than a hash, and it must
-		// survive: the ordinal identifies which replica this is.
+		// StatefulSet Pods use an ordinal rather than the Deployment
+		// ReplicaSet/Pod suffix pair and must remain unchanged.
 		"my-stateful-set-0": "my-stateful-set-0",
 		"standalone":        "standalone",
 
-		// Purely alphabetic segments are never hashes. Stripping them would
-		// merge genuinely distinct workloads under one name.
+		// Ordinary workload names must not be stripped just because their
+		// final segment consists only of lowercase letters.
 		"api-gateway-service": "api-gateway-service",
+
+		// A five-character suffix without the preceding ReplicaSet hash is
+		// not sufficient to identify a Deployment Pod.
+		"api-service-abcde": "api-service-abcde",
 	}
+
 	for pod, want := range cases {
 		if got := workloadFromPod(pod); got != want {
 			t.Errorf("workloadFromPod(%q) = %q, want %q", pod, got, want)
