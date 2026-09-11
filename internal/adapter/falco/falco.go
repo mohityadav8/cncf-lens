@@ -17,9 +17,11 @@ package falco
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
@@ -101,7 +103,7 @@ func (a *Adapter) Fetch(ctx context.Context, q adapter.Query) (signal.Set, error
 	var alerts []alert
 	var err error
 	if a.file != "" {
-		alerts, err = a.readFile()
+		alerts, err = a.readFile(q)
 	} else {
 		alerts, err = a.readHTTP(ctx, q)
 	}
@@ -156,33 +158,136 @@ func (a *Adapter) readHTTP(ctx context.Context, q adapter.Query) ([]alert, error
 	return alerts, nil
 }
 
-// readFile parses Falco's JSON-lines output. A malformed line is skipped rather
-// than failing the read: Falco can be killed mid-write, leaving a truncated
-// final line, and losing every earlier alert to that would be absurd.
-func (a *Adapter) readFile() ([]alert, error) {
+// readFile parses the JSON-lines output while avoiding a full historical scan
+// for the common case where the caller asks for a recent window.
+//
+// We read backwards in bounded chunks, because Falco file output is append-only
+// and the newest alerts are at the end of the file. Once we've found a complete
+// record older than q.From, we can stop. If the requested window reaches farther
+// back than the bounded tail scan, we fall back to a complete forward scan so an
+// older query never silently loses evidence.
+//
+// Malformed lines are skipped rather than failing the read: Falco can be killed
+// mid-write, leaving a truncated final line.
+func (a *Adapter) readFile(q adapter.Query) ([]alert, error) {
+	const tailBytes = 4 * 1024 * 1024
+
 	f, err := os.Open(a.file)
 	if err != nil {
 		return nil, fmt.Errorf("opening falco output %s: %w", a.file, err)
 	}
 	defer f.Close()
 
+	info, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("statting falco output %s: %w", a.file, err)
+	}
+
+	if info.Size() <= tailBytes {
+		return scanAlerts(f, 0, info.Size())
+	}
+
+	start := info.Size() - tailBytes
+	alerts, complete, err := scanTail(f, start, info.Size(), q.From)
+	if err != nil {
+		return nil, err
+	}
+	if complete {
+		return alerts, nil
+	}
+
+	// The query reaches farther back than the bounded tail. Preserve correctness
+	// by scanning the complete file rather than returning a partial history.
+	return scanAlerts(f, 0, info.Size())
+}
+
+func scanTail(f *os.File, start, end int64, from time.Time) ([]alert, bool, error) {
+	buf := make([]byte, end-start)
+	if _, err := f.ReadAt(buf, start); err != nil && err != io.EOF {
+		return nil, false, fmt.Errorf("reading falco output tail: %w", err)
+	}
+
+	// The first record in the tail may begin before the chunk boundary, so
+	// discard the partial line. If there is no newline at all, we cannot prove
+	// that the tail starts on a record boundary and must fall back to a full
+	// scan.
+	if start > 0 {
+		idx := bytes.IndexByte(buf, '\n')
+		if idx < 0 {
+			return nil, false, nil
+		}
+		buf = buf[idx+1:]
+	}
+
 	var alerts []alert
-	sc := bufio.NewScanner(f)
+	var oldest time.Time
+	var sawTimestamp bool
+
+	sc := bufio.NewScanner(bytes.NewReader(buf))
 	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
 		if line == "" {
 			continue
 		}
+
+		var al alert
+		if err := json.Unmarshal([]byte(line), &al); err != nil {
+			// A malformed record means we cannot safely establish that this
+			// tail covers q.From.
+			continue
+		}
+
+		alerts = append(alerts, al)
+
+		if ts, ok := parseTime(al); ok {
+			if !sawTimestamp || ts.Before(oldest) {
+				oldest = ts
+			}
+			sawTimestamp = true
+		}
+	}
+
+	if err := sc.Err(); err != nil {
+		return nil, false, fmt.Errorf("reading falco output tail: %w", err)
+	}
+
+	if !sawTimestamp || oldest.After(from) {
+		return alerts, false, nil
+	}
+
+	return alerts, true, nil
+}
+
+func scanAlerts(f *os.File, start, end int64) ([]alert, error) {
+	if _, err := f.Seek(start, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("seeking falco output %s: %w", f.Name(), err)
+	}
+
+	reader := io.LimitReader(f, end-start)
+	var alerts []alert
+
+	sc := bufio.NewScanner(reader)
+	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" {
+			continue
+		}
+
 		var al alert
 		if err := json.Unmarshal([]byte(line), &al); err != nil {
 			continue
 		}
 		alerts = append(alerts, al)
 	}
+
 	if err := sc.Err(); err != nil {
-		return nil, fmt.Errorf("reading falco output %s: %w", a.file, err)
+		return nil, fmt.Errorf("reading falco output %s: %w", f.Name(), err)
 	}
+
 	return alerts, nil
 }
 
