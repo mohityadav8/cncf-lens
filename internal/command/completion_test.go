@@ -1,6 +1,7 @@
 package command
 
 import (
+	"flag"
 	"strings"
 	"testing"
 )
@@ -56,5 +57,18 @@ func TestGlobalFlagsAreOffered(t *testing.T) {
 		if !strings.Contains(globalFlagList, flag) {
 			t.Errorf("globalFlagList is missing %s", flag)
 		}
+	}
+}
+
+func TestDiagnoseDoesNotExposeLearnFlag(t *testing.T) {
+	// The diagnose command must not advertise --learn because diagnosis
+	// hypotheses are not independently confirmed causal outcomes.
+	cmd := Diagnose()
+
+	fs := flag.NewFlagSet("diagnose", flag.ContinueOnError)
+	cmd.SetupFlags(fs)
+
+	if fs.Lookup("learn") != nil {
+		t.Fatal("diagnose must not expose --learn")
 	}
 }
