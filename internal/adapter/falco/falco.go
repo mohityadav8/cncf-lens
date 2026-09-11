@@ -1,18 +1,10 @@
 // Package falco implements the Adapter interface against Falco, the CNCF
 // runtime security engine.
 //
-// Falco has no query API of its own — it is a streaming detector that pushes
-// alerts outward. In practice teams collect those alerts in one of two places,
-// and this adapter reads both:
-//
-//   - Falcosidekick's /events endpoint, when the cluster runs the standard
-//     falcosidekick fan-out component.
-//   - A JSON-lines file or HTTP endpoint, when alerts are written by Falco's
-//     own file_output or http_output.
-//
-// Either way lens ends up with the same Signals, so `lens audit` and
-// `lens diagnose` can correlate a container escape attempt against the
-// deployment that preceded it.
+// Falco is a streaming detector rather than a historical query service.
+// Historical alerts must therefore come from a persisted source such as
+// Falco's JSON-lines file_output. An HTTP URL can be health-checked, but Lens
+// cannot assume that a Falcosidekick receiver exposes historical alerts.
 package falco
 
 import (
@@ -22,7 +14,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -102,11 +93,16 @@ func (a *Adapter) Fetch(ctx context.Context, q adapter.Query) (signal.Set, error
 
 	var alerts []alert
 	var err error
+
 	if a.file != "" {
 		alerts, err = a.readFile(q)
 	} else {
-		alerts, err = a.readHTTP(ctx, q)
+		return nil, fmt.Errorf(
+			"falco HTTP backend does not provide historical alerts; configure `file` " +
+				"for Falco file_output or point Lens at an alert store with a query API",
+		)
 	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -142,20 +138,6 @@ func (a *Adapter) Fetch(ctx context.Context, q adapter.Query) (signal.Set, error
 	}
 	out.SortByTime()
 	return out, nil
-}
-
-func (a *Adapter) readHTTP(ctx context.Context, q adapter.Query) ([]alert, error) {
-	params := url.Values{}
-	if q.Limit > 0 {
-		params.Set("limit", fmt.Sprint(q.Limit))
-	}
-
-	// Falcosidekick returns a bare array from /events.
-	var alerts []alert
-	if err := a.http.GetJSON(ctx, "/events", params, &alerts); err != nil {
-		return nil, err
-	}
-	return alerts, nil
 }
 
 // readFile parses the JSON-lines output while avoiding a full historical scan

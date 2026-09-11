@@ -112,11 +112,16 @@ contexts:
         url: http://localhost:16686
         # token_env: JAEGER_TOKEN
 
-      # Falco runtime security. Point this at falcosidekick, or read Falco's
-      # file_output directly by setting a file path instead of a url.
+      # Falco runtime security.
+      #
+      # "file" is the supported historical alert source for lens and should point
+      # at a Falco file_output JSON-lines file.
+      #
+      # "url" may be used for connectivity checks to an HTTP receiver such as
+      # falcosidekick, but Lens cannot query historical alerts from that receiver.
       falco:
         enabled: false
-        url: http://localhost:2801
+        # url: http://localhost:2801
         # file: /var/log/falco/events.json
 
   # A second context for production. Note token_env rather than inline tokens.
