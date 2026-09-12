@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -87,39 +88,34 @@ func TestFetchFromFile(t *testing.T) {
 	}
 }
 
-func TestFetchFromFalcosidekick(t *testing.T) {
-	now := time.Now().UTC()
+func TestHTTPBackendDoesNotAssumeHistoricalEventsEndpoint(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/ping" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode([]map[string]any{
-			mkAlert("Container escape attempt", "Critical", now.Add(-time.Minute), "payments", "legacy-agent"),
-		})
+
+		http.NotFound(w, r)
 	}))
 	defer srv.Close()
 
 	a := New("falco", srv.URL, "", false, 5*time.Second)
+
 	if err := a.HealthCheck(context.Background()); err != nil {
-		t.Errorf("HealthCheck: %v", err)
+		t.Fatalf("HealthCheck: %v", err)
 	}
 
-	got, err := a.Fetch(context.Background(), adapter.Query{
-		From: now.Add(-10 * time.Minute), To: now,
+	_, err := a.Fetch(context.Background(), adapter.Query{
+		From: time.Now().Add(-10 * time.Minute),
+		To:   time.Now(),
 	})
-	if err != nil {
-		t.Fatalf("Fetch: %v", err)
+	if err == nil {
+		t.Fatal("expected HTTP backend fetch to reject unsupported historical queries")
 	}
-	if len(got) != 1 {
-		t.Fatalf("want 1 alert, got %d", len(got))
-	}
-	if got[0].Severity != signal.SevCritical {
-		t.Errorf("severity = %v, want critical", got[0].Severity)
-	}
-	if got[0].Title != "Container escape attempt" {
-		t.Errorf("title = %q", got[0].Title)
+
+	want := "falco HTTP backend does not provide historical alerts"
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("Fetch error = %q, want substring %q", err, want)
 	}
 }
 

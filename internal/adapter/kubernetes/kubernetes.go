@@ -173,8 +173,7 @@ func (a *Adapter) eventToSignal(ev event, ts time.Time) signal.Signal {
 
 	typ := signal.TypeEvent
 	switch ev.Reason {
-	case "ScalingReplicaSet", "SuccessfulCreate", "SuccessfulDelete",
-		"Pulled", "Pulling", "Created", "Started", "Killing":
+	case "ScalingReplicaSet", "SuccessfulCreate", "SuccessfulDelete":
 		typ = signal.TypeDeploy
 	}
 

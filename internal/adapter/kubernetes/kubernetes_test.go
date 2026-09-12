@@ -77,7 +77,18 @@ func TestEventClassification(t *testing.T) {
 		wantSev  signal.Severity
 	}{
 		{"ScalingReplicaSet", "Normal", signal.TypeDeploy, signal.SevInfo},
-		{"Pulled", "Normal", signal.TypeDeploy, signal.SevInfo},
+		{"SuccessfulCreate", "Normal", signal.TypeDeploy, signal.SevInfo},
+		{"SuccessfulDelete", "Normal", signal.TypeDeploy, signal.SevInfo},
+
+		// Routine kubelet pod lifecycle events are ordinary events, not
+		// deployment/change signals. They must not receive the deployment-specific
+		// causal weight.
+		{"Pulled", "Normal", signal.TypeEvent, signal.SevInfo},
+		{"Pulling", "Normal", signal.TypeEvent, signal.SevInfo},
+		{"Created", "Normal", signal.TypeEvent, signal.SevInfo},
+		{"Started", "Normal", signal.TypeEvent, signal.SevInfo},
+		{"Killing", "Normal", signal.TypeEvent, signal.SevInfo},
+
 		{"OOMKilling", "Warning", signal.TypeEvent, signal.SevCritical},
 		{"Evicted", "Warning", signal.TypeEvent, signal.SevCritical},
 		{"FailedScheduling", "Warning", signal.TypeEvent, signal.SevError},
