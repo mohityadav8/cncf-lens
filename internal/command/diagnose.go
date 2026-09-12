@@ -19,7 +19,6 @@ var diagnoseFlags struct {
 	lookback string
 	maxCause int
 	minScore float64
-	learn    bool
 }
 
 // Diagnose builds the `lens diagnose` command.
@@ -47,7 +46,6 @@ a starting point for your own judgement, not a verdict.`,
 			fs.StringVar(&diagnoseFlags.lookback, "lookback", "15m", "how far before the anomaly to search for causes")
 			fs.IntVar(&diagnoseFlags.maxCause, "max-causes", 5, "maximum hypotheses to report")
 			fs.Float64Var(&diagnoseFlags.minScore, "min-score", 0.25, "drop hypotheses scoring below this (0-1)")
-			fs.BoolVar(&diagnoseFlags.learn, "learn", true, "record co-occurrences to improve future rankings")
 		},
 		Run: runDiagnose,
 	}
@@ -93,12 +91,6 @@ func runDiagnose(ctx context.Context, _ []string) error {
 	}
 	hyps := correlate.Diagnose(anomaly, all, opts)
 
-	// Feed the outcome back into the history store so the historical
-	// co-occurrence rule gets sharper on this specific cluster over time.
-	if diagnoseFlags.learn {
-		recordOutcome(rt, anomaly, all, hyps)
-	}
-
 	switch rt.OutputFormat() {
 	case "json":
 		j := &render.JSON{Out: os.Stdout}
@@ -114,26 +106,5 @@ func runDiagnose(ctx context.Context, _ []string) error {
 		rt.Terminal.Hypotheses(anomaly, hyps)
 		rt.ReportFailures(results)
 		return nil
-	}
-}
-
-// recordOutcome updates the co-occurrence counters. Causes that scored are
-// recorded as co-occurring; everything else in the lookback window increments
-// only the denominator, which is what keeps common-but-irrelevant events from
-// accumulating a misleadingly high ratio.
-func recordOutcome(rt *Runtime, anomaly signal.Signal, all signal.Set, hyps []correlate.Hypothesis) {
-	scored := make(map[string]bool, len(hyps))
-	for _, h := range hyps {
-		key := correlate.CauseKey(h.Cause)
-		scored[key] = true
-		rt.History.Record(key, correlate.AnomalyKey(anomaly))
-	}
-	for _, s := range all {
-		if !s.Timestamp.Before(anomaly.Timestamp) {
-			continue
-		}
-		if key := correlate.CauseKey(s); !scored[key] {
-			rt.History.RecordCauseSeen(key)
-		}
 	}
 }

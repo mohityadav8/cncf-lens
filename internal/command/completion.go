@@ -117,7 +117,7 @@ _lens_completions() {
     if [[ ${cur} == -* ]] ; then
         local cmd_flags=""
         case "${COMP_WORDS[1]}" in
-            diagnose) cmd_flags="--metric --lookback --max-causes --min-score --learn" ;;
+            diagnose) cmd_flags="--metric --lookback --max-causes --min-score" ;;
             trace)    cmd_flags="--id --correlate" ;;
             watch)    cmd_flags="--interval --min-severity" ;;
             audit)    cmd_flags="--min-severity --fail-on" ;;
