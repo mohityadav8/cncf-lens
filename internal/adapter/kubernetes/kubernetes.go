@@ -228,38 +228,47 @@ func eventTime(ev event) time.Time {
 // costs zero extra API calls during an incident.
 func workloadFromPod(pod string) string {
 	parts := strings.Split(pod, "-")
-	if len(parts) < 2 {
+	if len(parts) < 3 {
 		return pod
 	}
-	// Drop a trailing 5-char pod hash and a preceding 8-10 char replicaset hash.
+
+	// Deployment-managed Pods follow:
+	//
+	//   <deployment>-<replicaset-hash>-<pod-suffix>
+	//
+	// The five-character Pod suffix may be entirely alphabetic, so do not
+	// require a digit. The preceding ReplicaSet hash must still have the
+	// expected 8-10 character lowercase alphanumeric shape.
 	end := len(parts)
-	if isHash(parts[end-1]) {
-		end--
-	}
-	if end > 1 && isHash(parts[end-1]) {
-		end--
-	}
-	if end < 1 {
+
+	if len(parts[end-1]) != 5 || !isAlphanumericLower(parts[end-1]) {
 		return pod
 	}
+	end--
+
+	if end < 1 || len(parts[end-1]) < 8 || len(parts[end-1]) > 10 || !isAlphanumericLower(parts[end-1]) {
+		return pod
+	}
+	end--
+
 	return strings.Join(parts[:end], "-")
 }
 
-func isHash(s string) bool {
-	if len(s) < 4 || len(s) > 10 {
+func isAlphanumericLower(s string) bool {
+	if s == "" {
 		return false
 	}
-	hasDigit := false
+
 	for _, r := range s {
 		switch {
 		case r >= '0' && r <= '9':
-			hasDigit = true
 		case r >= 'a' && r <= 'z':
 		default:
 			return false
 		}
 	}
-	return hasDigit
+
+	return true
 }
 
 func firstNonEmpty(vals ...string) string {
