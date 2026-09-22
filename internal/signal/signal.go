@@ -156,7 +156,7 @@ func LabelOverlap(a, b Signal) int {
 		return 0
 	}
 	canonical := []string{
-		LabelCluster, LabelNamespace, LabelService,
+		LabelNamespace, LabelService,
 		LabelWorkload, LabelPod, LabelContainer, LabelNode,
 	}
 	n := 0

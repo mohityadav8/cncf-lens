@@ -268,8 +268,9 @@ func FindAnomaly(sigs signal.Set) (signal.Signal, bool) {
 		if s.Severity < signal.SevWarning {
 			continue
 		}
-		if !found || s.Severity > best.Severity ||
-			(s.Severity == best.Severity && s.Timestamp.Before(best.Timestamp)) {
+		if !found ||
+			s.Timestamp.After(best.Timestamp) ||
+			(s.Timestamp.Equal(best.Timestamp) && s.Severity > best.Severity) {
 			best = s
 			found = true
 		}

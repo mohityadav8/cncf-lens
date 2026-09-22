@@ -293,7 +293,7 @@ func severityFor(nq namedQuery, val float64) signal.Severity {
 // cross-backend label overlap scoring works.
 func applyMetricLabels(s *signal.Signal, metric map[string]string) {
 	s.SetLabel(signal.LabelNamespace, firstNonEmpty(metric["namespace"], metric["kubernetes_namespace"]))
-	s.SetLabel(signal.LabelPod, firstNonEmpty(metric["pod"], metric["pod_name"], metric["instance"]))
+	s.SetLabel(signal.LabelPod, firstNonEmpty(metric["pod"], metric["pod_name"]))
 	s.SetLabel(signal.LabelContainer, metric["container"])
 	s.SetLabel(signal.LabelService, firstNonEmpty(metric["service"], metric["job"]))
 	s.SetLabel(signal.LabelNode, metric["node"])
@@ -388,7 +388,7 @@ func downsample(in signal.Set, limit int) signal.Set {
 func formatSampleDetail(nq namedQuery, metric map[string]string, val float64) string {
 	var b strings.Builder
 	b.WriteString(formatValue(val, nq.unit))
-	if pod := firstNonEmpty(metric["pod"], metric["instance"]); pod != "" {
+	if pod := firstNonEmpty(metric["pod"], metric["pod_name"]); pod != "" {
 		b.WriteString("  pod=")
 		b.WriteString(pod)
 	}
