@@ -121,15 +121,9 @@ Compiled in: Kubernetes, Prometheus (also Thanos, Cortex, Mimir, VictoriaMetrics
 Falco is worth a note because it works differently from the others. It has no query API of its own — it is a streaming detector that pushes alerts outward — so lens reads them from wherever your cluster collects them:
 
 ```yaml
-# via falcosidekick
 falco:
   enabled: true
-  url: http://localhost:2801
-
-# or straight from Falco's file_output
-falco:
-  enabled: true
-  file: /var/log/falco/events.json
+  file: /var/log/falco/events.json   # Falco's file_output (JSON lines)
 ```
 
 Falco's `output_fields` are mapped onto the same canonical labels every other adapter uses, so a container-escape alert correlates against the metric spike and the deployment for that same pod. Alerts below warning priority are dropped by default, since Falco is deliberately chatty at Debug and Informational.
