@@ -154,13 +154,20 @@ func parseBlock(lines []rawLine, pos *int, indent int, parent *Node) error {
 			continue
 		}
 
-		// Empty value: either a nested block or an explicitly empty value.
+		// Empty value: a nested block, an "indentless" sequence, or an empty value.
 		child := &Node{Line: ln.num}
-		if *pos < len(lines) && lines[*pos].indent > indent {
+		switch {
+		case *pos < len(lines) && lines[*pos].indent > indent:
 			if err := parseBlock(lines, pos, lines[*pos].indent, child); err != nil {
 				return err
 			}
-		} else {
+		case *pos < len(lines) && lines[*pos].indent == indent && isListItem(lines[*pos].text):
+			// YAML allows a sequence at the same indent as its parent key.
+			// kubectl writes every kubeconfig this way.
+			if err := parseSequence(lines, pos, indent, child); err != nil {
+				return err
+			}
+		default:
 			child.IsScalar = true
 		}
 		parent.Map[key] = child
@@ -168,24 +175,55 @@ func parseBlock(lines []rawLine, pos *int, indent int, parent *Node) error {
 	return nil
 }
 
-// parseListItem handles `- value` sequence entries, including nested maps under
-// a list item.
+func isListItem(text string) bool {
+	return strings.HasPrefix(text, "- ") || text == "-"
+}
+
+// parseSequence consumes consecutive list items at exactly `indent`.
+func parseSequence(lines []rawLine, pos *int, indent int, parent *Node) error {
+	for *pos < len(lines) {
+		ln := lines[*pos]
+		if ln.indent != indent || !isListItem(ln.text) {
+			return nil
+		}
+		if err := parseListItem(lines, pos, indent, parent); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// parseListItem handles `- value` sequence entries, including maps under a
+// list item.
 func parseListItem(lines []rawLine, pos *int, indent int, parent *Node) error {
 	ln := lines[*pos]
-	inline := strings.TrimSpace(strings.TrimPrefix(ln.text, "-"))
+	rest := strings.TrimPrefix(ln.text, "-")
+	inline := strings.TrimSpace(rest)
+	// Column where the item's own keys live: after "-" and its spaces.
+	itemCol := indent + 1 + (len(rest) - len(strings.TrimLeft(rest, " ")))
 	*pos++
 
 	// `- key: value` starts a map entry inside the list.
 	if key, value, ok := splitKeyValue(inline); ok && inline != "" {
 		item := &Node{Map: map[string]*Node{}, Line: ln.num}
-		if value != "" {
-			item.Map[key] = &Node{Scalar: unquote(value), IsScalar: true, Line: ln.num}
-		} else {
-			item.Map[key] = &Node{IsScalar: true, Line: ln.num}
+		first := &Node{Line: ln.num}
+		switch {
+		case value != "":
+			first.Scalar = unquote(value)
+			first.IsScalar = true
+		case *pos < len(lines) && lines[*pos].indent > itemCol:
+			// A deeper block belongs to this key (e.g. `- cluster:`).
+			if err := parseBlock(lines, pos, lines[*pos].indent, first); err != nil {
+				return err
+			}
+		default:
+			first.IsScalar = true
 		}
-		// Absorb any further keys indented under this list item.
-		if *pos < len(lines) && lines[*pos].indent > indent {
-			if err := parseBlock(lines, pos, lines[*pos].indent, item); err != nil {
+		item.Map[key] = first
+
+		// Sibling keys of the same item sit at itemCol.
+		if *pos < len(lines) && lines[*pos].indent == itemCol && !isListItem(lines[*pos].text) {
+			if err := parseBlock(lines, pos, itemCol, item); err != nil {
 				return err
 			}
 		}
